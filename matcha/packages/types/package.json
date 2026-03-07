@@ -1,0 +1,17 @@
+{
+  "name": "@repo/types",
+  "type": "module",
+  "exports": {
+    "./auth": {
+      "types": "./auth.ts",
+      "default": "./auth.ts"
+    },
+    "./user": {
+      "types": "./user.ts",
+      "default": "./user.ts"
+    }
+  },
+  "dependencies": {
+    "zod": "^4.3.6"
+  }
+}
