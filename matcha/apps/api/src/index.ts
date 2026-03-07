@@ -1,3 +1,12 @@
+import app from './app.js'
+import { env } from './config/env/env'
 
 
-console.log("Hello, Matcha API!");
+app.listen(env.PORT, () => {
+  console.log(`Server is running on port ${env.PORT}`)
+})
+
+
+
+
+
