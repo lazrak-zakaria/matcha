@@ -1,5 +1,6 @@
 
 import type { Request, Response } from 'express'
+import { io } from '../../app.js'
 
 
 export const likesController = {
@@ -13,6 +14,8 @@ export const likesController = {
         if (!currentUserId) {
             return res.status(401).json({ error: 'Unauthorized' })
         }
+
+
         
         res.status(200).json({ message: 'User liked successfully' })
     }

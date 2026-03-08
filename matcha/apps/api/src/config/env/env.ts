@@ -18,6 +18,7 @@ const envSchema = z.object({
 
   ACCESS_TOKEN_EXPIRES: z.string().default('15m'),
   REFRESH_TOKEN_EXPIRES: z.string().default('7d'),
+  WEB_URL: z.string().default('http://localhost:3000'),
 
 })
 
