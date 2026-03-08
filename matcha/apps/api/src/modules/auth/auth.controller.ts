@@ -3,6 +3,7 @@ import type { Request, Response } from 'express'
 import pool from '../../config/db'
 import { ValidationErrorResponse } from '../../types/validationResponse'
 import { signAccessToken, signRefreshToken, verifyToken } from '../../lib/jwt'
+import { env } from '../../config/env/env'
 
 
 const checkUniqueViolation = (error: unknown) => {
@@ -33,7 +34,7 @@ export const authController = {
 
             const { email, username, password, firstName, lastName } = req.body;
 
-            const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS || '12')
+            const saltRounds = env.BCRYPT_SALT_ROUNDS;
             const hashedPassword = await bcrypt.hash(password, saltRounds)
 
 
@@ -52,8 +53,6 @@ export const authController = {
                         lastName,
                     }
                 })
-
-
         }
         catch (err) {
             const uniqueViolation = checkUniqueViolation(err);
@@ -66,7 +65,6 @@ export const authController = {
 
     }
     ,
-
     login: async (req: Request, res: Response) => {
 
         try {

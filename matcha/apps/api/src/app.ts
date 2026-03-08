@@ -8,6 +8,7 @@ import { verifyToken } from './lib/jwt';
 import { sendLikeNotification } from './socket/events/notification';
 import { connectEvent } from './socket/events/connect';
 import { env } from './config/env/env';
+import { profileRouter } from './modules/profile/profile.router';
 
 
 const app: express.Application = express();
@@ -58,6 +59,9 @@ connectEvent();
 
 
 app.use('/api/auth', authRouter);
+app.use('/api/profile', profileRouter);
+
+
 app.get('/health', (req, res) => {
     sendLikeNotification(1, 1) // Example notification for testing
     res.status(200).json({ message: 'API is healthy' })
