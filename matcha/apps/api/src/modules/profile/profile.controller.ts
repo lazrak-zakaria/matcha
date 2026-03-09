@@ -46,9 +46,10 @@ const profileController = {
                 `UPDATE users SET username = $1, first_name = $2, last_name = $3, bio = $4, gender = $5 WHERE id = $6`,
                 [username, firstName, lastName, bio, gender, userId]
             )
-            res.status(200).json({ message: 'Profile updated successfully',
+            res.status(200).json({
+                message: 'Profile updated successfully',
                 user: { id: userId, username, firstName, lastName, bio, gender }
-             })
+            })
         }
         catch (error) {
             console.error('Error updating profile:', error)
@@ -162,7 +163,6 @@ const profileController = {
             res.status(500).json({ message: 'Failed to fetch likes' })
         }
     },
-
     getMatches: async (req: Request, res: Response) => {
         try {
             const result = await pool.query(
@@ -191,6 +191,50 @@ const profileController = {
         }
     }
     ,
+    updateLocation: async (req: Request, res: Response) => {
+        try {
+            const { latitude, longitude } = req.body
+            await pool.query(
+                'UPDATE users SET latitude = $1, longitude = $2 WHERE id = $3',
+                [latitude, longitude, req.user?.userId]
+            )
+            res.status(200).json({ message: 'Location updated successfully' })
+        }
+        catch (error) {
+            console.error('Error updating location:', error)
+            res.status(500).json({ message: 'Failed to update location' })
+        }
+    },
+    updateSearchPreferences: async (req: Request, res: Response) => {
+        try {
+            const { minAge, maxAge, minFameRating, maxFameRating, preferredGender, locationRadiusKm } = req.body
+
+            const userId = z.coerce.number().parse(req.params.userId);
+            if (userId !== req.user?.userId) {
+                res.status(403).json({ message: 'Forbidden: You can only update your own search preferences' });
+                return;
+            }
+
+            await pool.query(
+                `INSERT INTO user_search_preferences (user_id, min_age, max_age, min_fame_rating, max_fame_rating, preferred_gender, location_radius_km)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7)
+                 ON CONFLICT (user_id) DO UPDATE SET
+                    min_age = EXCLUDED.min_age,
+                    max_age = EXCLUDED.max_age,
+                    min_fame_rating = EXCLUDED.min_fame_rating,
+                    max_fame_rating = EXCLUDED.max_fame_rating,
+                    preferred_gender = EXCLUDED.preferred_gender,
+                    location_radius_km = EXCLUDED.location_radius_km
+                `,
+                [userId, minAge, maxAge, minFameRating, maxFameRating, preferredGender, locationRadiusKm]
+            )
+            res.status(200).json({ message: 'Search preferences updated successfully' })
+        }
+        catch (error) {
+            console.error('Error updating search preferences:', error)
+            res.status(500).json({ message: 'Failed to update search preferences' })
+        }
+    }
 
 }
 

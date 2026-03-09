@@ -77,4 +77,4 @@ const browsingController = {
 }
 
 export default browsingController
-
+export { browsingController }
