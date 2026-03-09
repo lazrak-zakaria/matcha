@@ -9,6 +9,8 @@ import { sendLikeNotification } from './socket/events/notification';
 import { connectEvent } from './socket/events/connect';
 import { env } from './config/env/env';
 import { profileRouter } from './modules/profile/profile.router';
+import { browsingRouter } from './modules/browsing/browsing.router';
+import { requireAuth } from './middleware/auth';
 
 
 const app: express.Application = express();
@@ -52,14 +54,15 @@ io.use((socket, next) => {
     }
 })
 
+
+
+
+
 connectEvent();
-
-
-
-
 
 app.use('/api/auth', authRouter);
 app.use('/api/profile', profileRouter);
+app.use('/api/browsing', requireAuth, browsingRouter);
 
 
 app.get('/health', (req, res) => {
