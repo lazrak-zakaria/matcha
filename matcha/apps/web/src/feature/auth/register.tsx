@@ -1,0 +1,173 @@
+"use client"
+import { Button } from "@/components/ui/button"
+import { z } from "zod"
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card"
+import {
+    Field,
+    FieldDescription,
+    FieldGroup,
+    FieldLabel,
+} from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
+import { useState } from "react"
+import { Eye, EyeOff } from "lucide-react"
+
+
+
+export const registerSchema = z.object({
+    email: z.email({ message: "Please enter a valid email address." }).max(255),
+    firstName: z.string().min(1, { message: "First name cannot be empty." }).max(100),
+    lastName: z.string().min(1, { message: "Last name cannot be empty." }).max(100),
+    username: z.string().min(3, { message: "Username must be at least 3 characters." }).max(50),
+    password: z.string().min(8, { message: "Password must be at least 8 characters." }),
+    confirmPassword: z.string().min(8, { message: "Confirm password must be at least 8 characters." }),
+}).refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match.",
+    path: ["confirmPassword"],
+});
+export type RegisterInput = z.infer<typeof registerSchema>
+
+
+
+
+export default function SignupForm() {
+
+
+    const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+
+
+    const handleRegister = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setFormErrors({});
+
+        const formElement = event.currentTarget;
+        const formData = new FormData(formElement);
+
+        const inputData = {
+            email: formData.get("email") as string,
+            firstName: formData.get("firstName") as string,
+            lastName: formData.get("lastName") as string,
+            username: formData.get("username") as string,
+            password: formData.get("password") as string,
+            confirmPassword: formData.get("confirmPassword") as string,
+        };
+
+        const validationResult = registerSchema.safeParse(inputData);
+
+        if (!validationResult.success) {
+            console.log(validationResult.error);
+            const errors: Record<string, string> = {};
+            validationResult.error.issues.forEach((issue: any) => {
+                errors[issue.path[0] as string] = issue.message;
+            });
+            return setFormErrors(errors);
+        }
+
+        // mutate(formData);
+    }
+
+
+    return (
+        <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
+            <div className="w-full max-w-sm">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Create an account</CardTitle>
+                        <CardDescription>
+                            Enter your information below to create your account
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleRegister}>
+                            <FieldGroup className="gap-2">
+                                <Field>
+                                    <FieldLabel htmlFor="username">UserName</FieldLabel>
+                                    <Input id="username" type="text" placeholder="username" name="username" required />
+                                    {formErrors.firstName && (
+                                        <span className="text-xs text-red-500">
+                                            {formErrors.firstName}
+                                        </span>
+                                    )}
+
+                                </Field>
+                                <Field>
+                                    <FieldLabel htmlFor="first-name">First Name</FieldLabel>
+                                    <Input id="first-name" type="text" placeholder="first name" name="firstName" required />
+                                </Field>
+                                <Field>
+                                    <FieldLabel htmlFor="last-name">Last Name</FieldLabel>
+                                    <Input id="last-name" type="text" placeholder="last name" name="lastName" required />
+                                </Field>
+                                <Field>
+                                    <FieldLabel htmlFor="email">Email</FieldLabel>
+                                    <Input
+                                        id="email"
+                                        type="email"
+                                        placeholder="m@example.com"
+                                        name="email"
+                                        required
+                                    />
+                                </Field>
+
+                                <Field>
+                                    <FieldLabel htmlFor="password">Password</FieldLabel>
+                                    <div className="relative">
+                                        <Input id="password" type={showPassword ? "text" : "password"} name="password" required className="pr-10" />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword((v) => !v)}
+                                            className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground"
+                                            aria-label={showPassword ? "Hide password" : "Show password"}
+                                        >
+                                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        </button>
+                                    </div>
+                                    <FieldDescription>
+                                        Must be at least 8 characters long.
+                                    </FieldDescription>
+                                </Field>
+                                <Field>
+                                    <FieldLabel htmlFor="confirm-password">
+                                        Confirm Password
+                                    </FieldLabel>
+                                    <div className="relative">
+                                        <Input id="confirm-password" type={showConfirmPassword ? "text" : "password"} name="confirmPassword" required className="pr-10" />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowConfirmPassword((v) => !v)}
+                                            className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground"
+                                            aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                                        >
+                                            {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        </button>
+                                    </div>
+                                    <FieldDescription>Please confirm your password.</FieldDescription>
+                                </Field>
+                                <FieldGroup>
+                                    <Field>
+                                        <Button type="submit">Create Account</Button>
+                                        <Button variant="outline" type="button">
+                                            Sign up with Google
+                                        </Button>
+                                        <FieldDescription className="px-6 text-center">
+                                            Already have an account? <a href="#">Sign in</a>
+                                        </FieldDescription>
+                                    </Field>
+                                </FieldGroup>
+                            </FieldGroup>
+                        </form>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    )
+}
