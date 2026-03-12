@@ -9,16 +9,16 @@ import { env } from '../../config/env/env'
 const checkUniqueViolation = (error: unknown) => {
 
     const response: ValidationErrorResponse = {
-        error: "Validation failed",
+        message: "Validation failed",
         details: { formErrors: [], fieldErrors: {} }
     };
 
     if (error instanceof Error && 'code' in error && 'detail' in error && error.code === '23505') {
         const detail: string = String(error.detail) || '';
         if (detail.includes('email')) {
-            response.details.fieldErrors.email = ["Already taken"];
+            response.details.fieldErrors.email = "email already exists";
         } else if (detail.includes('username')) {
-            response.details.fieldErrors.username = ["Already taken"];
+            response.details.fieldErrors.username = "username already exists";
         }
         return response;
     }
@@ -58,9 +58,11 @@ export const authController = {
             const uniqueViolation = checkUniqueViolation(err);
             if (uniqueViolation) {
                 res.status(400).json(uniqueViolation);
+                console.error("Unique constraint violation:", uniqueViolation);
                 return;
             }
-            res.status(500).json({ error: 'Internal server error' })
+            console.error("Registration error:", err);
+            res.status(500).json({ message: 'Internal server error' })
         }
 
     }
@@ -111,6 +113,7 @@ export const authController = {
                 message: 'Login successful',
                 accessToken: token,
                 user: {
+                    userId: user.id,
                     email: user.email,
                     username: user.username,
                     firstName: user.first_name,

@@ -64,5 +64,6 @@ CREATE TABLE IF NOT EXISTS "user_search_preference_tags" (
 
 ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "latitude"  DECIMAL(9, 6);
 ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "longitude" DECIMAL(10, 6);
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "fame_rating" INTEGER NOT NULL DEFAULT 0;
 
 

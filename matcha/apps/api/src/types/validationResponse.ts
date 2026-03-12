@@ -1,8 +1,8 @@
 
 export interface ValidationErrorResponse {
-  error: string;
+  message: string;
   details: {
     formErrors: string[];
-    fieldErrors: Record<string, string[]>;
+    fieldErrors: Record<string, string>;
   };
 }

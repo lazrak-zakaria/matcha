@@ -11,7 +11,7 @@ import { env } from './config/env/env';
 import { profileRouter } from './modules/profile/profile.router';
 import { browsingRouter } from './modules/browsing/browsing.router';
 import { requireAuth } from './middleware/auth';
-
+import cors from 'cors';
 
 const app: express.Application = express();
 
@@ -28,7 +28,10 @@ const io = new Server(server, {
 
 app.use(express.json())
 app.use(cookieParser())
-
+app.use(cors({
+    origin: env.WEB_URL,
+    credentials: true,
+}))     
 
 io.use((socket, next) => {
     const authHeader = socket.handshake.headers.authorization;

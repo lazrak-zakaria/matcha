@@ -17,6 +17,9 @@ import {
 import { Input } from "@/components/ui/input"
 import { useState } from "react"
 import { Eye, EyeOff } from "lucide-react"
+import { useMutation } from "@tanstack/react-query"
+import { authService } from "@/services/auth.api"
+import { formatZodError } from "@/lib/formatError"
 
 
 
@@ -25,23 +28,53 @@ export const registerSchema = z.object({
     firstName: z.string().min(1, { message: "First name cannot be empty." }).max(100),
     lastName: z.string().min(1, { message: "Last name cannot be empty." }).max(100),
     username: z.string().min(3, { message: "Username must be at least 3 characters." }).max(50),
-    password: z.string().min(8, { message: "Password must be at least 8 characters." }),
+    password: z.string().min(8, { message: "Password must be at least 8 characters." })
+        .regex(/[A-Za-z]/, "Password must contain at least one letter")
+        .regex(/[0-9]/, "Password must contain at least one number")
+        .regex(
+            /[^A-Za-z0-9]/,
+            "Password must contain at least one special character",
+        ),
     confirmPassword: z.string().min(8, { message: "Confirm password must be at least 8 characters." }),
 }).refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match.",
     path: ["confirmPassword"],
 });
+
+
 export type RegisterInput = z.infer<typeof registerSchema>
-
-
-
-
 export default function SignupForm() {
 
 
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+
+
+    const { mutate, isPending } = useMutation({
+        mutationFn: authService.register,
+        onSuccess: (result: any) => {
+            // toast.success("Profile updated!");
+            console.log(result);
+        },
+        onError: (err: any) => {
+
+            if (err.details?.fieldErrors) {
+                console.log("Validation errors:", err.details.fieldErrors);
+                setFormErrors(err.details.fieldErrors);
+                console.log(err.details.fieldErrors);
+            } else {
+                // toast.error("An error occurred while updating the profile.");
+                console.error(err);
+            }
+        },
+    });
+
+
+
+
+
 
 
 
@@ -64,16 +97,13 @@ export default function SignupForm() {
         const validationResult = registerSchema.safeParse(inputData);
 
         if (!validationResult.success) {
-            console.log(validationResult.error);
-            const errors: Record<string, string> = {};
-            validationResult.error.issues.forEach((issue: any) => {
-                errors[issue.path[0] as string] = issue.message;
-            });
-            return setFormErrors(errors);
+            return setFormErrors(formatZodError(validationResult));
         }
 
-        // mutate(formData);
+        mutate(inputData);
     }
+
+
 
 
     return (
@@ -92,9 +122,9 @@ export default function SignupForm() {
                                 <Field>
                                     <FieldLabel htmlFor="username">UserName</FieldLabel>
                                     <Input id="username" type="text" placeholder="username" name="username" required />
-                                    {formErrors.firstName && (
+                                    {formErrors.username && (
                                         <span className="text-xs text-red-500">
-                                            {formErrors.firstName}
+                                            {formErrors.username}
                                         </span>
                                     )}
 
@@ -102,10 +132,20 @@ export default function SignupForm() {
                                 <Field>
                                     <FieldLabel htmlFor="first-name">First Name</FieldLabel>
                                     <Input id="first-name" type="text" placeholder="first name" name="firstName" required />
+                                    {formErrors.firstName && (
+                                        <span className="text-xs text-red-500">
+                                            {formErrors.firstName}
+                                        </span>
+                                    )}
                                 </Field>
                                 <Field>
                                     <FieldLabel htmlFor="last-name">Last Name</FieldLabel>
                                     <Input id="last-name" type="text" placeholder="last name" name="lastName" required />
+                                    {formErrors.lastName && (
+                                        <span className="text-xs text-red-500">
+                                            {formErrors.lastName}
+                                        </span>
+                                    )}
                                 </Field>
                                 <Field>
                                     <FieldLabel htmlFor="email">Email</FieldLabel>
@@ -116,6 +156,11 @@ export default function SignupForm() {
                                         name="email"
                                         required
                                     />
+                                    {formErrors.email && (
+                                        <span className="text-xs text-red-500">
+                                            {formErrors.email}
+                                        </span>
+                                    )}
                                 </Field>
 
                                 <Field>
@@ -131,6 +176,11 @@ export default function SignupForm() {
                                             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                         </button>
                                     </div>
+                                    {formErrors.password && (
+                                        <span className="text-xs text-red-500">
+                                            {formErrors.password}
+                                        </span>
+                                    )}
                                     <FieldDescription>
                                         Must be at least 8 characters long.
                                     </FieldDescription>
@@ -150,11 +200,22 @@ export default function SignupForm() {
                                             {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                         </button>
                                     </div>
+                                    {formErrors.confirmPassword && (
+                                        <span className="text-xs text-red-500">
+                                            {formErrors.confirmPassword}
+                                        </span>
+                                    )}
                                     <FieldDescription>Please confirm your password.</FieldDescription>
                                 </Field>
                                 <FieldGroup>
                                     <Field>
-                                        <Button type="submit">Create Account</Button>
+                                        {isPending ? (
+                                            <Button type="submit" disabled>
+                                                Creating Account...
+                                            </Button>
+                                        ) : (
+                                            <Button type="submit">Create Account</Button>
+                                        )}
                                         <Button variant="outline" type="button">
                                             Sign up with Google
                                         </Button>
