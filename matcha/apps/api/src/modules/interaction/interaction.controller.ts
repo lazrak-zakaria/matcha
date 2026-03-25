@@ -3,6 +3,7 @@ import type { Request, Response } from 'express'
 import { io } from '../../app.js'
 import { pool } from '../../config/db/index.js'
 import { fi } from 'zod/locales';
+import { skip } from 'node:test';
 
 
 
@@ -186,6 +187,22 @@ export const likesController = {
         }
         res.status(200).json({ message: 'Like removed successfully' })
     }
+    ,
+    skipUser: async (req: Request, res: Response) => {
+        try {
+            const { userId } = req.params
+            const currentUserId = req.user?.userId
 
+            await pool.query(
+                'INSERT INTO skips (skipper_id, skipped_id) VALUES ($1, $2)',
+                [currentUserId, userId]
+            );
+        }
+        catch (error) {
+            console.error('Error skipping user:', error)
+            throw new Error('Failed to skip user')
+        }
+        res.status(200).json({ message: 'User skipped successfully' })
+    }
 
 }

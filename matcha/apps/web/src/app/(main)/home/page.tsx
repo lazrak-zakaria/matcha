@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { DragOffset, DragStart, Filters, Profile } from '@/types/profile';
 import { useMutation } from '@tanstack/react-query';
+import { profileApi } from '@/services/profile.api';
 
 
 const ALL_TAGS = [
@@ -25,7 +26,7 @@ const ALL_TAGS = [
   'Art', 'Movies', 'Gaming', 'Cooking', 'Sports',
 ];
 
-export default function DiscoverPage () {
+export default function DiscoverPage() {
   const [currentProfileIndex, setCurrentProfileIndex] = useState<number>(0);
   const [matches, setMatches] = useState<Profile[]>([]);
   const [showMatchModal, setShowMatchModal] = useState<boolean>(false);
@@ -50,7 +51,7 @@ export default function DiscoverPage () {
   const dragStartRef = useRef<DragStart>({ x: 0, y: 0 });
   const dragOffsetRef = useRef<DragOffset>({ x: 0, y: 0 });
   const [dragOffset, setDragOffset] = useState<DragOffset>({ x: 0, y: 0 });
-  const handleEndRef = useRef<() => void>(() => {});
+  const handleEndRef = useRef<() => void>(() => { });
 
   const handleStart = (clientX: number, clientY: number): void => {
     isDraggingRef.current = true;
@@ -119,7 +120,7 @@ export default function DiscoverPage () {
     const { x } = dragOffset;
     const rotation: number = x * 0.1;
     const opacity: number = 1 - Math.abs(x) / 300;
-    
+
     return {
       transform: `translateX(${x}px) rotate(${rotation}deg)`,
       opacity: Math.max(0.7, opacity),
@@ -130,7 +131,7 @@ export default function DiscoverPage () {
   const getSwipeIndicator = (): React.ReactElement | null => {
     const { x } = dragOffset;
     if (Math.abs(x) < 50) return null;
-    
+
     if (x > 0) {
       return (
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-green-500 text-white px-6 py-3 rounded-full text-xl font-bold border-4 border-white rotate-12">
@@ -152,34 +153,65 @@ export default function DiscoverPage () {
     setCurrentPhotoIndex(0);
   };
 
-    const { mutate : mutateLike, isLikePending } = useMutation({
-      
-    });
+  const { mutate: mutateLike, isPending: isLikePending } = useMutation({
+    mutationFn: profileApi.likeProfile,
+    onSuccess: (result: any) => {
+      if (result.isMatch) {
+        setLastMatch(currentProfile);
+        setMatches((prev) => [...prev, currentProfile!]);
+        setShowMatchModal(true);
+      }
+      nextProfile();
+
+    }
+  });
+
+  const { mutate: mutateSkip, isPending: isSkipPending } = useMutation({
+    mutationFn: profileApi.skipProfile,
+    onSuccess: (result: any) => {
+      nextProfile();
+    }
+    ,
+    onError: (error: any) => {
+      console.error('Error skipping profile:', error);
+      nextProfile();
+    }
+  });
+
+    const { mutate: mutateReport, isPending: isReportPending } = useMutation({
+    mutationFn: profileApi.reportProfile,
+    onSuccess: (result: any) => {
+      nextProfile();
+    }
+    ,
+    onError: (error: any) => {
+      console.error('Error reporting profile:', error);
+      nextProfile();
+    }
+  });
+
 
   const handleLike = (): void => {
     if (!currentProfile) return;
-    const isMatch: boolean = Math.random() > 0.5;
-    if (isMatch) {
-      setLastMatch(currentProfile);
-      setMatches((prev) => [...prev, currentProfile!]);
-      setShowMatchModal(true);
-    }
-    nextProfile();
+    mutateLike({ userId: currentProfile.id});
   };
 
   const handleSkip = (): void => {
+    if (!currentProfile) return;
+    mutateSkip({ userId: currentProfile.id});
     nextProfile();
   };
 
   const handleReport = (): void => {
     if (!currentProfile) return;
+    mutateReport({ userId: currentProfile.id});
     alert(`Reported ${currentProfile.name}. Thank you for helping keep our community safe.`);
-    nextProfile();
+    nextProfile();  
   };
 
   const nextPhoto = (): void => {
     if (!currentProfile) return;
-    
+
     if (currentPhotoIndex < currentProfile.photos.length - 1) {
       setCurrentPhotoIndex(currentPhotoIndex + 1);
     }
@@ -238,7 +270,6 @@ export default function DiscoverPage () {
             <DialogHeader>
               <DialogTitle>Search Preferences</DialogTitle>
             </DialogHeader>
-
             <FilterForm
               filters={filters}
               onChange={(f) => { setFilters(f); setFilterOpen(false); }}
@@ -479,11 +510,10 @@ function FilterForm({
             <Badge
               key={tag}
               onClick={() => toggleTag(tag)}
-              className={`cursor-pointer select-none transition-colors ${
-                local.tags.includes(tag)
+              className={`cursor-pointer select-none transition-colors ${local.tags.includes(tag)
                   ? 'bg-pink-500 hover:bg-pink-600 text-white'
                   : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-              }`}
+                }`}
             >
               {tag}
             </Badge>

@@ -8,7 +8,7 @@ export const profileApi  = {
     likeProfile : async (payload: any) => {
         return apiService.postCall("/auth/login", payload);
     },
-    passProfile : async (payload: any) => {
+    skipProfile : async (payload: any) => {
         return apiService.postCall("/auth/login", payload);
     },
     reportProfile : async (payload: any) => {
