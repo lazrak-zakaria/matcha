@@ -6,7 +6,7 @@ import { signAccessToken, signRefreshToken, verifyToken } from '../../lib/jwt'
 import { env } from '../../config/env/env'
 
 
-const checkUniqueViolation = (error: unknown) => {
+export const checkUniqueViolation = (error: unknown) => {
 
     const response: ValidationErrorResponse = {
         message: "Validation failed",
@@ -78,7 +78,7 @@ export const authController = {
             )
 
             if (result.rows.length === 0) {
-                res.status(400).json({ error: 'Invalid email or password' })
+                res.status(400).json({ message: 'Invalid email or password' })
                 return
             }
 
@@ -86,7 +86,7 @@ export const authController = {
 
             const passwordMatch = await bcrypt.compare(password, user.password_hash)
             if (!passwordMatch) {
-                res.status(400).json({ error: 'Invalid email or password' })
+                res.status(400).json({ message: 'Invalid email or password' })
                 return
             }
 
@@ -101,6 +101,11 @@ export const authController = {
                 username: user.username,
                 email: user.email,
             })
+
+            const avatar = await pool.query(
+                'SELECT * FROM images WHERE user_id = $1 AND is_avatar = true',
+                [user.id]
+            )
 
             res.cookie('refreshToken', refreshToken, {
                 httpOnly: true,
@@ -119,11 +124,15 @@ export const authController = {
                     username: user.username,
                     firstName: user.first_name,
                     lastName: user.last_name,
+                    bio: user.bio,
+                    age: user.age,
+                    gender: user.gender,
+                    avatar: avatar.rows[0]?.url || null,
                 },
             })
         }
         catch (err) {
-            res.status(500).json({ error: 'Internal server error' })
+            res.status(500).json({ message: 'Internal server error' })
         }
     }
     ,
@@ -147,7 +156,7 @@ export const authController = {
             })
         }
         catch (err) {
-            return res.status(401).json({ error: 'Invalid or expired refresh token' })
+            return res.status(401).json({ message: 'Invalid or expired refresh token' })
         }
     }
 

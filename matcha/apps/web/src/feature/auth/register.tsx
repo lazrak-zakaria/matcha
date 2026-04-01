@@ -1,6 +1,6 @@
 "use client"
 import { Button } from "@/components/ui/button"
-import { z } from "zod"
+import { set, z } from "zod"
 import {
     Card,
     CardContent,
@@ -16,10 +16,11 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { useState } from "react"
-import { Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff} from "lucide-react"
 import { useMutation } from "@tanstack/react-query"
 import { authService } from "@/services/auth.api"
 import { formatZodError } from "@/lib/formatError"
+import Link from "next/link"
 
 
 
@@ -43,7 +44,7 @@ export const registerSchema = z.object({
 
 
 export type RegisterInput = z.infer<typeof registerSchema>
-export default function SignupForm() {
+export default function SignupForm({handlePageChange} : {handlePageChange: (page: 'login' | 'register') => void}) {
 
 
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -56,7 +57,7 @@ export default function SignupForm() {
         mutationFn: authService.register,
         onSuccess: (result: any) => {
             // toast.success("Profile updated!");
-            console.log(result);
+            handlePageChange("login");
         },
         onError: (err: any) => {
 
@@ -66,7 +67,7 @@ export default function SignupForm() {
                 console.log(err.details.fieldErrors);
             } else {
                 // toast.error("An error occurred while updating the profile.");
-                console.error(err);
+                setFormErrors({ message: err.message || "An error occurred during registration." });
             }
         },
     });
@@ -117,6 +118,11 @@ export default function SignupForm() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
+                        {
+                            formErrors.message && (
+                            <p className="text-red-500 text-center ">{formErrors.message}</p>
+                            )
+                        }
                         <form onSubmit={handleRegister}>
                             <FieldGroup className="gap-2">
                                 <Field>
@@ -220,7 +226,14 @@ export default function SignupForm() {
                                             Sign up with Google
                                         </Button>
                                         <FieldDescription className="px-6 text-center">
-                                            Already have an account? <a href="#">Sign in</a>
+                                            Already have an account?   <button
+                                            type="button"
+                                            onClick={() => handlePageChange("login")}
+                                            className=" hover:underline font-medium"
+                                        >
+                                            Sign in
+                                        </button>
+
                                         </FieldDescription>
                                     </Field>
                                 </FieldGroup>

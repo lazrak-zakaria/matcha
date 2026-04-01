@@ -1,7 +1,6 @@
 import { Profile } from "@/types/profile";
 
-  // Sample profile data
-  const profiles: Profile[] = [
+export  const profiles: Profile[] = [
     {
       id: 1,
       name: "Emma Thompson",

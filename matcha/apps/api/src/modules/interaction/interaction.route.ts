@@ -4,9 +4,11 @@ import { requireAuth } from "../../middleware/auth"
 
 
 
-const likesRouter : Router = Router()
+const interactionRouter : Router = Router()
 
-likesRouter.post('/like/:userId', requireAuth ,likesController.likeUser)
+interactionRouter.post('/like/:userId', requireAuth ,likesController.likeUser)
+interactionRouter.post('/skip/:userId', requireAuth ,likesController.skipUser)
+interactionRouter.post('/report/:userId', requireAuth ,likesController.reportUser)
 
-export default likesRouter;
-export {likesRouter}
+export default interactionRouter;
+export {interactionRouter}

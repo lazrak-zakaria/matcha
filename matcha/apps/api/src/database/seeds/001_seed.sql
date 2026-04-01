@@ -9,6 +9,7 @@ TRUNCATE TABLE
     views,
     likes,
     unlikes,
+    images,
     user_tags,
     tags,
     users
@@ -24,7 +25,12 @@ INSERT INTO users (username, email, first_name, last_name, password_hash, gender
     ('dave',    'dave@test.com',    'Dave',    'Garcia',  '$2b$12$cVh9Kwe.93E2Ioe47hAi0ebjVX2lNrE2OGuD3kyIb6WQbhNIYVxF.', 'male',   31, 40, false, 45.7640,  4.8357),   -- Lyon (far)
     ('eve',     'eve@test.com',     'Eve',     'Bernard', '$2b$12$cVh9Kwe.93E2Ioe47hAi0ebjVX2lNrE2OGuD3kyIb6WQbhNIYVxF.', 'female', 26, 70, true,  43.2965,  5.3698),   -- Marseille (far)
     ('frank',   'frank@test.com',   'Frank',   'Moreau',  '$2b$12$cVh9Kwe.93E2Ioe47hAi0ebjVX2lNrE2OGuD3kyIb6WQbhNIYVxF.', 'male',   29, 55, false, 48.8550,  2.3500),   -- Paris (nearby)
-    ('grace',   'grace@test.com',   'Grace',   'Simon',   '$2b$12$cVh9Kwe.93E2Ioe47hAi0ebjVX2lNrE2OGuD3kyIb6WQbhNIYVxF.', 'female', 23, 95, true,  48.8580,  2.3470);   -- Paris (nearby)
+    ('grace',   'grace@test.com',   'Grace',   'Simon',   '$2b$12$cVh9Kwe.93E2Ioe47hAi0ebjVX2lNrE2OGuD3kyIb6WQbhNIYVxF.', 'female', 23, 95, true,  48.8580,  2.3470),   -- Paris (nearby)
+    ('hugo',    'hugo@test.com',    'Hugo',    'Petit',   '$2b$12$cVh9Kwe.93E2Ioe47hAi0ebjVX2lNrE2OGuD3kyIb6WQbhNIYVxF.', 'male',   28, 75, true,  48.8420,  2.3310),   -- Paris
+    ('irene',   'irene@test.com',   'Irene',   'Laurent', '$2b$12$cVh9Kwe.93E2Ioe47hAi0ebjVX2lNrE2OGuD3kyIb6WQbhNIYVxF.', 'female', 25, 88, false, 48.8400,  2.3600),   -- Paris
+    ('julien',  'julien@test.com',  'Julien',  'Roux',    '$2b$12$cVh9Kwe.93E2Ioe47hAi0ebjVX2lNrE2OGuD3kyIb6WQbhNIYVxF.', 'male',   30, 60, false, 47.2184, -1.5536),   -- Nantes
+    ('lea',     'lea@test.com',     'Lea',     'Dubois',  '$2b$12$cVh9Kwe.93E2Ioe47hAi0ebjVX2lNrE2OGuD3kyIb6WQbhNIYVxF.', 'female', 21, 92, true,  48.8660,  2.3200),   -- Paris
+    ('mateo',   'mateo@test.com',   'Mateo',   'Henry',   '$2b$12$cVh9Kwe.93E2Ioe47hAi0ebjVX2lNrE2OGuD3kyIb6WQbhNIYVxF.', 'male',   32, 50, false, 50.6292,  3.0573);   -- Lille
 
 -- ============================================================
 -- Tags
@@ -36,57 +42,70 @@ INSERT INTO tags (name) VALUES
     ('travel'),
     ('cooking'),
     ('gaming'),
-    ('art');
+    ('art'),
+    ('hiking'),
+    ('photography'),
+    ('books'),
+    ('yoga'),
+    ('design'),
+    ('coding'),
+    ('dancing');
 
 -- ============================================================
 -- User tags
 -- ============================================================
 INSERT INTO user_tags (user_id, tag_id) VALUES
-    (1, 1), (1, 3), (1, 4),   -- alice: music, cinema, travel
-    (2, 2), (2, 6),            -- bob: sport, gaming
-    (3, 1), (3, 5), (3, 7),   -- carol: music, cooking, art
-    (4, 2), (4, 3),            -- dave: sport, cinema
-    (5, 4), (5, 5),            -- eve: travel, cooking
-    (6, 6), (6, 1),            -- frank: gaming, music
-    (7, 7), (7, 3), (7, 4);   -- grace: art, cinema, travel
+    (1, 1), (1, 4), (1, 9),
+    (2, 2), (2, 6), (2, 13),
+    (3, 3), (3, 7), (3, 12),
+    (4, 4), (4, 8), (4, 10),
+    (5, 5), (5, 11), (5, 14),
+    (6, 1), (6, 3), (6, 12),
+    (7, 2), (7, 7), (7, 8),
+    (8, 4), (8, 9), (8, 13),
+    (9, 5), (9, 10), (9, 11),
+    (10, 6), (10, 12), (10, 14),
+    (11, 1), (11, 8), (11, 9),
+    (12, 2), (12, 4), (12, 13);
 
 -- ============================================================
--- Likes
+-- Images
 -- ============================================================
-INSERT INTO likes (liker_id, liked_id) VALUES
-    (1, 2),   -- alice  → bob
-    (1, 3),   -- alice  → carol
-    (2, 1),   -- bob    → alice  (mutual match with alice)
-    (3, 6),   -- carol  → frank
-    (4, 1),   -- dave   → alice
-    (7, 1);   -- grace  → alice
+INSERT INTO images (user_id, url, is_avatar) VALUES
+    (1,  '/public/images/am.jpg', true),
+    (1,  '/public/images/am.jpg', false),
+    (1,  '/public/images/am.jpg', false),
+    (2,  '/public/images/am.jpg', true),
+    (2,  '/public/images/am.jpg', false),
+    (2,  '/public/images/am.jpg', false),
+    (3,  '/public/images/am.jpg', true),
+    (3,  '/public/images/am.jpg', false),
+    (3,  '/public/images/am.jpg', false),
+    (4,  '/public/images/am.jpg', true),
+    (4,  '/public/images/am.jpg', false),
+    (4,  '/public/images/am.jpg', false),
+    (5,  '/public/images/am.jpg', true),
+    (5,  '/public/images/am.jpg', false),
+    (5,  '/public/images/am.jpg', false),
+    (6,  '/public/images/am.jpg', true),
+    (6,  '/public/images/am.jpg', false),
+    (6,  '/public/images/am.jpg', false),
+    (7,  '/public/images/am.jpg', true),
+    (7,  '/public/images/am.jpg', false),
+    (7,  '/public/images/am.jpg', false),
+    (8,  '/public/images/am.jpg', true),
+    (8,  '/public/images/am.jpg', false),
+    (8,  '/public/images/am.jpg', false),
+    (9,  '/public/images/am.jpg', true),
+    (9,  '/public/images/am.jpg', false),
+    (9,  '/public/images/am.jpg', false),
+    (10, '/public/images/am.jpg', true),
+    (10, '/public/images/am.jpg', false),
+    (10, '/public/images/am.jpg', false),
+    (11, '/public/images/am.jpg', true),
+    (11, '/public/images/am.jpg', false),
+    (11, '/public/images/am.jpg', false),
+    (12, '/public/images/am.jpg', true),
+    (12, '/public/images/am.jpg', false),
+    (12, '/public/images/am.jpg', false);
 
--- ============================================================
--- Views
--- ============================================================
-INSERT INTO views (viewer_id, viewed_id) VALUES
-    (1, 2),
-    (1, 3),
-    (2, 1),
-    (3, 1),
-    (4, 1),
-    (5, 2),
-    (6, 7);
-
--- ============================================================
--- Blocks
--- ============================================================
-INSERT INTO blocks (blocker_id, blocked_id) VALUES
-    (1, 5);   -- alice blocked eve (eve should not appear in alice's suggestions)
-
--- ============================================================
--- Search preferences for alice (user 1)
--- ============================================================
-INSERT INTO user_search_preferences (user_id, min_age, max_age, min_fame_rating, max_fame_rating, location_radius_km, preferred_gender)
-VALUES (1, 20, 35, 50, 100, 10, 'male');
-
--- alice prefers music and cinema tags
-INSERT INTO user_search_preference_tags (preference_id, tag_id)
-VALUES
-    (1, 1),  -- music
-    (1, 3);  -- cinema

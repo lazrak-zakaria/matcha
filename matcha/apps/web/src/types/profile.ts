@@ -1,12 +1,13 @@
 export interface Profile {
   id: number;
-  name: string;
+  firstName: string;
+  lastName: string;
   age: number;
   location: string;
   distance: string;
   fameRating: number;
   bio: string;
-  photos: string[];
+  photos: any;
   tags: string[];
   occupation: string;
   education: string;

@@ -12,9 +12,12 @@ import { profileRouter } from './modules/profile/profile.router';
 import { browsingRouter } from './modules/browsing/browsing.router';
 import { requireAuth } from './middleware/auth';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from "url";
+import { Console } from 'node:console';
+import { interactionRouter } from './modules/interaction/interaction.route';
 
 const app: express.Application = express();
-
 
 const server = createServer(app);
 
@@ -64,15 +67,23 @@ io.use((socket, next) => {
 connectEvent();
 
 app.use('/api/auth', authRouter);
-app.use('/api/profile', profileRouter);
-app.use('/api/browsing', requireAuth, browsingRouter);
+app.use('/api/profile', requireAuth,profileRouter);
+app.use('/api/users', requireAuth, browsingRouter);
+app.use('/api/interactions', requireAuth, interactionRouter);
 
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+app.use(
+  "/public/images",
+  express.static(path.join(__dirname, "../public/images"))
+);
+
+console.log(path.join(__dirname, "../public/images"))
 app.get('/health', (req, res) => {
     sendLikeNotification(1, 1) // Example notification for testing
     res.status(200).json({ message: 'API is healthy' })
 })
-
 
 
 export default app

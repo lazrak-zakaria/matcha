@@ -2,18 +2,32 @@
 import { Router } from "express";
 import profileController from "./profile.controller";
 import { validateBody } from "../../middleware/validation";
-import { userInfoUpdate } from "@repo/types/user";
+import { userAccountUpdate, userInfoUpdate, userPasswordUpdate, userProfileUpdate } from "@repo/types/user";
 import { requireAuth } from "../../middleware/auth";
+import { upload } from "../../config/upload/multerConfig";
 
 
 
-const profileRouter : Router = Router();
+const profileRouter: Router = Router();
 
-
+profileRouter.get('/likes', requireAuth, profileController.getLikes);
+profileRouter.get('/views', requireAuth, profileController.getViews);
+profileRouter.get('/matches', requireAuth, profileController.getMatches);
+profileRouter.get('/tags', requireAuth, profileController.getTagsAggregated);
+profileRouter.get('/preferences/tags', requireAuth, profileController.getTagsPreferencesAggregated);
+profileRouter.get('/preferences', requireAuth, profileController.getSearchPreferences);
+profileRouter.get('/:userId/images', requireAuth, profileController.getImages);
 profileRouter.get('/:userId', profileController.getProfile);
-profileRouter.patch('/:userId', validateBody(userInfoUpdate) ,profileController.updateProfile);
-profileRouter.get('/:userId/tags', requireAuth,profileController.getTags);
-profileRouter.patch('/:userId/password', profileController.updatePassword);
+profileRouter.get('/:userId/tags', requireAuth, profileController.getTags);
+
+
+profileRouter.patch('/tags', requireAuth, profileController.updateTags);
+profileRouter.patch('/profile', requireAuth, validateBody(userProfileUpdate), profileController.updateProfile);
+profileRouter.patch('/account', requireAuth, validateBody(userAccountUpdate), profileController.updateAccount);
+profileRouter.patch('/password', requireAuth, validateBody(userPasswordUpdate), profileController.updatePassword);
+profileRouter.patch('/avatar', requireAuth, upload.single('avatar'), profileController.updateAvatar);
+profileRouter.patch('/:userId/images', requireAuth, upload.array('images', 5), profileController.updateImages);
+profileRouter.patch('/preferences', requireAuth, profileController.updateSearchPreferences);
 
 export default profileRouter
-export {profileRouter}
+export { profileRouter }

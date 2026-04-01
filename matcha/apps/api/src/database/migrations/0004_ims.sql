@@ -1,0 +1,13 @@
+CREATE TABLE IF NOT EXISTS "images" (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    url TEXT NOT NULL,
+    is_avatar BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    FOREIGN KEY ("user_id") REFERENCES users(id) ON DELETE CASCADE
+);
+
+
+
+

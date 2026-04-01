@@ -1,6 +1,6 @@
 "use client"
 import { Button } from "@/components/ui/button"
-import { z } from "zod"
+import { set, z } from "zod"
 import {
     Card,
     CardContent,
@@ -22,7 +22,9 @@ import { authService } from "@/services/auth.api"
 import { registerSchema } from "./register"
 import { formatZodError } from "@/lib/formatError"
 import { useAuthStore } from "@/store/useAuthStore"
-import { useRouter } from "next/dist/client/components/navigation"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { toast } from "sonner"
 
 
 
@@ -38,7 +40,7 @@ export const loginSchema = z.object({
 });
 export type LoginInput = z.infer<typeof loginSchema>
 
-export default function LoginForm() {
+export default function LoginForm({handlePageChange} : {handlePageChange: (page: 'login' | 'register') => void}) {
 
 
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -50,18 +52,23 @@ export default function LoginForm() {
     const { mutate, isPending } = useMutation({
         mutationFn: authService.login,
         onSuccess: (result: any) => {
+            if (result.user.avatar && result.user.avatar.startsWith("/")) {
+                result.user.avatar = `${process.env.NEXT_PUBLIC_API_URL}${result.user.avatar}`;
+            }
+
             setAuth(result.user, result.accessToken);
+            toast("Logged in successfully.");
             router.push("/home");
         },
         onError: (err: any) => {
-
+            console.error("Login error:", err);
             if (err.details?.fieldErrors) {
                 console.log("Validation errors:", err.details.fieldErrors);
                 setFormErrors(err.details.fieldErrors);
                 console.log(err.details.fieldErrors);
             } else {
-                // toast.error("An error occurred while updating the profile.");
                 console.error(err);
+                setFormErrors({ message: err.message || "An error occurred during login." });
             }
         },
     });
@@ -77,9 +84,7 @@ export default function LoginForm() {
             email: formData.get("email") as string,
             password: formData.get("password") as string,
         };
-
         const validationResult = loginSchema.safeParse(inputData);
-
         if (!validationResult.success) {
             return setFormErrors(formatZodError(validationResult));
         }
@@ -99,7 +104,12 @@ export default function LoginForm() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <form onSubmit={handleLogin}>
+                        {
+                            formErrors.message && (
+                            <p className="text-red-500 text-center ">{formErrors.message}</p>
+                            )
+                        } 
+                            <form onSubmit={handleLogin}>
                             <FieldGroup className="gap-2">
                                 <Field>
                                     <FieldLabel htmlFor="email">Email</FieldLabel>
@@ -153,7 +163,13 @@ export default function LoginForm() {
                                             Sign in with Google
                                         </Button>
                                         <FieldDescription className="px-6 text-center">
-                                            Don't have an account? <a href="#">Sign up</a>
+                                            Don't have an account? <button
+                                            type="button"
+                                            onClick={() => handlePageChange("register")}
+                                            className=" hover:underline font-medium"
+                                        >
+                                            Sign up
+                                        </button>
                                         </FieldDescription>
                                     </Field>
                                 </FieldGroup>

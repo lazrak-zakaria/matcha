@@ -21,6 +21,8 @@ const envSchema = z.object({
   WEB_URL: z.string().default('http://localhost:3000'),
   BCRYPT_SALT_ROUNDS: z.coerce.number().default(10),
 
+  UPLOAD_DIR: z.string().default('/public/images'),
+
 })
 
 const parsedEnv = envSchema.safeParse(process.env)

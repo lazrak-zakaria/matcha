@@ -8,8 +8,6 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const { token, isHydrated } = useAuthStore();
   const router = useRouter();
 
-
-  
   useEffect(() => {
     if (!token && isHydrated) {
       router.replace('/');

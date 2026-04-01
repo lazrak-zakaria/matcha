@@ -1,19 +1,35 @@
 import { apiService } from './api.interact';
 
+const profileApiPrefix = '/profile';
+
 export const profileApi  = {
 
-    getProfiles: async (page: any) => {
-        return apiService.getCall("/auth/register", {page});
+    getTags: async (userId: string) => {
+        return apiService.getCall(`${profileApiPrefix}/${userId}/tags`);
     },
-    likeProfile : async (payload: any) => {
-        return apiService.postCall("/auth/login", payload);
+    getImages: async (userId: string) => {
+        return apiService.getCall(`${profileApiPrefix}/${userId}/images`);
     },
-    skipProfile : async (payload: any) => {
-        return apiService.postCall("/auth/login", payload);
+    updateImages: async (userId: string, payload: any) => {
+        return apiService.patchCall(`${profileApiPrefix}/${userId}/images`, payload);
     },
-    reportProfile : async (payload: any) => {
-        return apiService.postCall("/auth/login", payload);
+    updatePreferences: async (payload: any) => {
+        return apiService.patchCall(`${profileApiPrefix}/preferences`, payload);
     },
-
+    getPreferenceTagsAggregated: async () => {
+        return apiService.getCall(`${profileApiPrefix}/preferences/tags`);
+    },
+    getSearchPreferences: async () => {
+        return apiService.getCall(`${profileApiPrefix}/preferences`);
+    },
+    getLastLikes: async () => {
+        return apiService.getCall(`${profileApiPrefix}/likes`);
+    },
+    getLastViews: async () => {
+        return apiService.getCall(`${profileApiPrefix}/views`);
+    },
+    getLastMatches: async () => {
+        return apiService.getCall(`${profileApiPrefix}/matches`);
+    }
 
 }

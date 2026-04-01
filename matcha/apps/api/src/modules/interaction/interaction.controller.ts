@@ -21,6 +21,7 @@ export const likesController = {
     // swip right
     likeUser: async (req: Request, res: Response) => {
         const client = await pool.connect()
+        let isMatch = false;
         try {
             const { userId } = req.params
             const currentUserId = req.user?.userId
@@ -32,10 +33,10 @@ export const likesController = {
                 [currentUserId, userId]
             );
 
-            await client.query(
-                'INSERT INTO notifications (user_id, type, content) VALUES ($1, $2, $3)',
-                [userId, 'like', `User ${currentUserId} liked your profile.`]
-            );
+            // await client.query(
+            //     'INSERT INTO notifications (user_id, type, content) VALUES ($1, $2, $3)',
+            //     [userId, 'like', `User ${currentUserId} liked your profile.`]
+            // );
 
             const matchResult = await client.query(
                 'SELECT 1 FROM likes WHERE liker_id = $1 AND liked_id = $2',
@@ -43,15 +44,17 @@ export const likesController = {
             );
 
             if (matchResult.rowCount && matchResult.rowCount > 0) {
+                isMatch = true;
                 await client.query(
                     'INSERT INTO matches (user1_id, user2_id) VALUES ($1, $2)',
                     [currentUserId, userId]
                 );
-                await client.query(
-                    'INSERT INTO notifications (user_id, type, content) VALUES ($1, $2, $3), ($4, $5, $6)',
-                    [currentUserId, 'match', `You matched with user ${userId}.`, userId, 'match', `You matched with user ${currentUserId}.`]
-                );
+                // await client.query(
+                //     'INSERT INTO notifications (user_id, type, content) VALUES ($1, $2, $3), ($4, $5, $6)',
+                //     [currentUserId, 'match', `You matched with user ${userId}.`, userId, 'match', `You matched with user ${currentUserId}.`]
+                // );
             }
+            
             await client.query('COMMIT')
 
             // Emit a notification to the liked user
@@ -64,7 +67,9 @@ export const likesController = {
         finally {
             client.release()
         }
-        res.status(200).json({ message: 'User liked successfully' })
+
+        
+        res.status(200).json({ message: 'User liked successfully', isMatch })
     }
     ,
     // swipe left
@@ -194,7 +199,7 @@ export const likesController = {
             const currentUserId = req.user?.userId
 
             await pool.query(
-                'INSERT INTO skips (skipper_id, skipped_id) VALUES ($1, $2)',
+                'INSERT INTO skips (skiper_id, skiped_id) VALUES ($1, $2)',
                 [currentUserId, userId]
             );
         }
