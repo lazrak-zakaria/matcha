@@ -11,6 +11,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { DragOffset, DragStart, Filters, Profile } from '@/types/profile';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { profileApi } from '@/services/profile.api';
@@ -27,12 +37,14 @@ export default function DiscoverPage() {
   const [currentProfileIndex, setCurrentProfileIndex] = useState<number>(0);
   const [matches, setMatches] = useState<Profile[]>([]);
   const [showMatchModal, setShowMatchModal] = useState<boolean>(false);
+  const [showReportDialog, setShowReportDialog] = useState(false);
   const [lastMatch, setLastMatch] = useState<Profile | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
 
   // const [profiles, setProfiles] = useState<Profile[]>([]);
 
   const cardRef = useRef<HTMLDivElement>(null);
+  const viewedProfileIdsRef = useRef<Set<number>>(new Set());
 
 
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState<number>(0);
@@ -199,8 +211,9 @@ export default function DiscoverPage() {
   });
 
   const { mutate: mutateReport, isPending: isReportPending } = useMutation({
-    mutationFn: interactionService.reportUser,
+    mutationFn: (userId: number) => interactionService.reportUser(userId, 'fake_user'),
     onSuccess: (result: any) => {
+      toast.success('User reported as fake account')
       nextProfile();
     }
     ,
@@ -223,7 +236,7 @@ export default function DiscoverPage() {
   const handleReport = (): void => {
     if (!currentProfile) return;
     mutateReport(currentProfile.id );
-    alert(`Reported ${currentProfile.firstName} ${currentProfile.lastName}. Thank you for helping keep our community safe.`);
+    setShowReportDialog(false);
   };
 
   const nextPhoto = (): void => {
@@ -247,6 +260,16 @@ export default function DiscoverPage() {
     }
   };
 
+  useEffect(() => {
+    if (!currentProfile?.id) return;
+    if (viewedProfileIdsRef.current.has(currentProfile.id)) return;
+
+    viewedProfileIdsRef.current.add(currentProfile.id);
+    interactionService.viewUser(currentProfile.id).catch((error) => {
+      console.error('Error recording profile view:', error);
+    });
+  }, [currentProfile?.id]);
+
 
   return (
     <div className="flex flex-col min-h-screen pt-16 lg:pt-0 bg-gradient-to-br from-pink-50/50 to-purple-50/50 dark:from-background dark:to-background overflow-x-hidden">
@@ -257,9 +280,7 @@ export default function DiscoverPage() {
           <h1 className="text-lg font-bold bg-gradient-to-r from-pink-500 to-red-500 bg-clip-text text-transparent">
             Discover Profiles
           </h1>
-          <p className="text-xs text-muted-foreground hidden sm:block">
-            {matches.length} {matches.length === 1 ? 'match' : 'matches'} today
-          </p>
+
         </div>
 
         {/* ── Search Preferences Modal ───────────────────────────────────────── */}
@@ -346,7 +367,14 @@ export default function DiscoverPage() {
                               <h2 className="text-xl font-bold">{currentProfile.firstName} {currentProfile.lastName}, {currentProfile.age}</h2>
                               <div className="flex items-center gap-1 text-white/80 text-xs mt-0.5">
                                 <MapPin className="h-3 w-3" />
-                                <span>{currentProfile.distance}</span>
+                                <span>
+                                  {[
+                                    typeof (currentProfile as any).distanceKm === 'number'
+                                      ? `${(currentProfile as any).distanceKm.toFixed(1)} km away`
+                                      : null,
+                                    (currentProfile as any).city || null,
+                                  ].filter(Boolean).join(' • ') || 'Location unavailable'}
+                                </span>
                               </div>
                             </div>
                             <div className="flex items-center gap-1 bg-black/30 rounded-full px-2 py-0.5 backdrop-blur-sm">
@@ -377,7 +405,7 @@ export default function DiscoverPage() {
                 {/* Action buttons */}
                 <div className="flex justify-center items-center gap-5">
                   <Button
-                    onClick={handleReport}
+                    onClick={() => setShowReportDialog(true)}
                     variant="outline"
                     size="icon"
                     className="h-11 w-11 rounded-full border-yellow-300 text-yellow-600 hover:bg-yellow-50"
@@ -406,13 +434,27 @@ export default function DiscoverPage() {
                   </Button>
                 </div>
 
-                {/* Match count — mobile only */}
-                <p className="text-center text-xs text-muted-foreground mt-3 sm:hidden">
-                  {matches.length} {matches.length === 1 ? 'match' : 'matches'} today
-                </p>
+
               </div>
             </div>
           )}
+
+      <AlertDialog open={showReportDialog} onOpenChange={setShowReportDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Report as fake user?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to report this profile as a fake user? This action will be sent to moderation.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleReport} disabled={isReportPending}>
+              {isReportPending ? 'Reporting...' : 'Yes, report'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Match Modal */}
       {showMatchModal && lastMatch && (

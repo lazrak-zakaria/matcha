@@ -5,7 +5,7 @@ export interface AuthenticatedRequest extends Request {
   user?: JwtPayload
 }
 
-export function requireAuth(
+export default function requireAuth(
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
@@ -26,3 +26,5 @@ export function requireAuth(
     res.status(401).json({ error: 'Invalid or expired token' })
   }
 }
+
+export { requireAuth }

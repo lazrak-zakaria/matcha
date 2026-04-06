@@ -4,6 +4,7 @@ import pool from '../../config/db'
 import { ValidationErrorResponse } from '../../types/validationResponse'
 import { signAccessToken, signRefreshToken, verifyToken } from '../../lib/jwt'
 import { env } from '../../config/env/env'
+import { io } from '../../app.js'
 
 
 export const checkUniqueViolation = (error: unknown) => {
@@ -157,6 +158,45 @@ export const authController = {
         }
         catch (err) {
             return res.status(401).json({ message: 'Invalid or expired refresh token' })
+        }
+    },
+
+    logout: async (req: Request, res: Response) => {
+        try {
+            const authHeader = req.headers.authorization
+            let userId: number | null = null
+
+            if (authHeader?.startsWith('Bearer ')) {
+                try {
+                    const payload = verifyToken(authHeader.slice(7))
+                    userId = Number(payload.userId)
+                } catch {
+                    userId = null
+                }
+            }
+
+            if (userId) {
+                await pool.query(
+                    `UPDATE users SET is_online = FALSE, last_seen = NOW() WHERE id = $1`,
+                    [userId],
+                )
+
+                // Disconnect all active sockets for this user room.
+                io.in(String(userId)).disconnectSockets(true)
+            }
+
+            res.clearCookie('refreshToken', {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'strict',
+                path: '/api/auth/refresh-token',
+            })
+
+            res.status(200).json({ message: 'Logged out successfully' })
+        }
+        catch (err) {
+            console.error('Logout error:', err)
+            res.status(500).json({ message: 'Failed to logout' })
         }
     }
 

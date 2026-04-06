@@ -55,10 +55,7 @@ CREATE TABLE IF NOT EXISTS "user_search_preferences" (
 
 -- junction table: one row per preferred tag per user preference
 CREATE TABLE IF NOT EXISTS "user_search_preference_tags" (
-    preference_id   INTEGER NOT NULL,
     tag_id          INTEGER NOT NULL,
-    PRIMARY KEY (preference_id, tag_id),
-    FOREIGN KEY (preference_id) REFERENCES user_search_preferences(id) ON DELETE CASCADE,
     FOREIGN KEY (tag_id)        REFERENCES tags(id) ON DELETE CASCADE
 );
 

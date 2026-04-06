@@ -108,9 +108,17 @@ export default function SignupForm({handlePageChange} : {handlePageChange: (page
 
 
     return (
-        <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
-            <div className="w-full max-w-sm">
-                <Card>
+        <div className="relative flex min-h-svh w-full items-center justify-center overflow-hidden bg-rose-100 p-6 md:p-10">
+            <div className="pointer-events-none absolute inset-0 [background:radial-gradient(circle_at_14%_16%,rgba(251,113,133,0.32),transparent_35%),radial-gradient(circle_at_86%_76%,rgba(244,114,182,0.24),transparent_38%),linear-gradient(150deg,#fff3f5,#fdf2f8_45%,#fff7f9)]" />
+            <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(rgba(225,29,72,0.12)_1px,transparent_1px),linear-gradient(to_right,rgba(225,29,72,0.12)_1px,transparent_1px)] [background-size:40px_40px]" />
+
+            <div className="relative z-10 w-full max-w-sm space-y-5">
+                <div className="text-center">
+                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-rose-500">Welcome to Matcha</p>
+                    <h1 className="mt-2 text-2xl font-bold text-rose-900">Find your next meaningful connection</h1>
+                </div>
+
+                <Card className="border-rose-200 bg-rose-50/90 shadow-xl shadow-rose-100">
                     <CardHeader>
                         <CardTitle>Create an account</CardTitle>
                         <CardDescription>

@@ -2,7 +2,7 @@
 
 
 import React, { use, useEffect, useState } from 'react';
-import { Settings, Edit3, Heart, Eye, MessageCircle, MapPin, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Settings, Edit3, Heart, Eye, MessageCircle, MapPin, X, ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +12,8 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useQuery } from '@tanstack/react-query';
 import { profileApi } from '@/services/profile.api';
+import { detectUserLocation, getCityFromCoordinates } from '@/lib/geolocation';
+import { toast } from 'sonner';
 
 type ProfileListItem = {
     id: number;
@@ -21,12 +23,29 @@ type ProfileListItem = {
     avatar: string | null;
 };
 
+type ProfileQuestion = {
+    id: number;
+    question: string;
+    answer: string;
+    displayOrder: number;
+};
+
+type SelfProfile = {
+    firstName?: string;
+    lastName?: string;
+    age?: number;
+    bio?: string;
+    fameRating?: number;
+    city?: string;
+};
+
 const ProfilePage = () => {
-    const { user } = useAuthStore();
+    const { user, userCity, setCity, setLocation, setLocationPermissionAsked } = useAuthStore();
     const userId = user?.userId;
     const [activeImageIndex, setActiveImageIndex] = useState(0);
     const [showImageModal, setShowImageModal] = useState(false);
     const [modalImageIndex, setModalImageIndex] = useState(0);
+    const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
     const router = useRouter();
     // const [tags, setTags] = useState<string[]>(user?.tags || []);
       const { data: dataImages, isLoading: loadingImages } = useQuery({
@@ -40,6 +59,12 @@ const ProfilePage = () => {
         queryKey: ['profile', 'tags'],
         queryFn: () => profileApi.getTags(user?.userId || ""),
         enabled: !!user,
+    });
+
+    const { data: selfProfileData } = useQuery<SelfProfile>({
+        queryKey: ['profile', 'self', userId],
+        queryFn: () => profileApi.getProfileById(userId || ''),
+        enabled: !!userId,
     });
 
     const { data: lastLikesData } = useQuery<ProfileListItem[]>({
@@ -57,6 +82,12 @@ const ProfilePage = () => {
     const { data: lastMatchesData } = useQuery<ProfileListItem[]>({
         queryKey: ['profile', 'lastMatches', userId],
         queryFn: () => profileApi.getLastMatches(),
+        enabled: !!userId,
+    });
+
+    const { data: questionsData } = useQuery<ProfileQuestion[]>({
+        queryKey: ['profile', 'questions', userId],
+        queryFn: () => profileApi.getQuestions(userId || ''),
         enabled: !!userId,
     });
 
@@ -80,6 +111,7 @@ const ProfilePage = () => {
     const lastLikes = lastLikesData || [];
     const lastViews = lastViewsData || [];
     const lastMatches = lastMatchesData || [];
+    const questions = questionsData || [];
 
     const getImageSrc = (image?: string | null) => {
         if (!image) return '';
@@ -87,10 +119,11 @@ const ProfilePage = () => {
     };
 
     const userProfile = {
-        name: `${user.firstName} ${user.lastName}`,
-        age: user.age,
+        name: `${selfProfileData?.firstName ?? user?.firstName ?? ''} ${selfProfileData?.lastName ?? user?.lastName ?? ''}`.trim(),
+        age: selfProfileData?.age ?? user?.age,
+        fameRating: selfProfileData?.fameRating ?? 0,
         // location: user.location,
-        bio: user.bio,
+        bio: selfProfileData?.bio ?? user?.bio,
         images: images,
         avatar: getImageSrc(user.avatar),
         tags: tags
@@ -173,6 +206,38 @@ const ProfilePage = () => {
         }
     };
 
+    const handleRetryLocation = async () => {
+        setIsUpdatingLocation(true)
+        try {
+            const coords = await detectUserLocation()
+            if (!coords) {
+                toast.error('Location access denied or unavailable. Please enable browser location permissions.')
+                return
+            }
+
+            const city = await getCityFromCoordinates(coords.latitude, coords.longitude)
+
+            await profileApi.updateLocation({
+                latitude: coords.latitude,
+                longitude: coords.longitude,
+                city: city ?? undefined,
+            })
+
+            setLocation(coords)
+            setLocationPermissionAsked(true)
+            if (city) {
+                setCity(city)
+            }
+
+            toast.success(city ? `Location updated to ${city}` : 'Location updated successfully')
+        } catch (error) {
+            console.error('Failed to update location:', error)
+            toast.error('Failed to update location. Please try again.')
+        } finally {
+            setIsUpdatingLocation(false)
+        }
+    }
+
     return (
         <div className="container bg-white min-h-screen mt-15 lg:mt-0 max-w-screen">
             {/* Header */}
@@ -195,13 +260,26 @@ const ProfilePage = () => {
                     <div className="flex items-center gap-4 mb-4">
                         <Avatar className="w-20 h-20">
                             <AvatarImage src={userProfile.avatar} alt={userProfile.name} />
-                            <AvatarFallback>{user.firstName.charAt(0)}{user.lastName.charAt(0)}</AvatarFallback>
+                            <AvatarFallback>{(user?.firstName?.charAt(0) ?? '')}{(user?.lastName?.charAt(0) ?? '')}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
                             <h2 className="text-xl font-bold">{userProfile.name}, {userProfile.age}</h2>
+                            <div className="mt-1 inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-1 text-xs text-amber-700">
+                                <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
+                                Fame {Number(userProfile.fameRating).toFixed(1)}/5
+                            </div>
                             <div className="flex items-center text-gray-600 text-sm mt-1">
                                 <MapPin className="w-4 h-4 mr-1" />
-                                {/* {userProfile.location} */}
+                                <span>{selfProfileData?.city || userCity || 'Location not set'}</span>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="ml-2 h-7 px-2 text-xs"
+                                    onClick={handleRetryLocation}
+                                    disabled={isUpdatingLocation}
+                                >
+                                    {isUpdatingLocation ? 'Updating...' : 'Retry location'}
+                                </Button>
                             </div>
                         </div>
                     </div>
@@ -242,6 +320,23 @@ const ProfilePage = () => {
                                 </div>
                             ))}
                         </div>
+                    </div>
+
+                    {/* My Q&A */}
+                    <div className="mb-6">
+                        <h3 className="font-semibold mb-3">My Q&A</h3>
+                        {questions.length === 0 ? (
+                            <p className="text-sm text-gray-500">No questions yet. Add them in Settings.</p>
+                        ) : (
+                            <div className="space-y-2">
+                                {questions.map((item) => (
+                                    <Card key={item.id} className="p-3 bg-gray-50 border-gray-200">
+                                        <p className="text-xs uppercase tracking-wide text-gray-500">{item.question}</p>
+                                        <p className="text-sm text-gray-800 mt-1">{item.answer}</p>
+                                    </Card>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
 

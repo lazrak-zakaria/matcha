@@ -15,7 +15,21 @@ const profileController = {
         const { userId } = req.params;
         try {
             const result = await pool.query(
-                `SELECT id, username, email, first_name AS "firstName", last_name AS "lastName", bio, gender FROM users WHERE id = $1`,
+                `SELECT
+                    id,
+                    username,
+                    email,
+                    first_name AS "firstName",
+                    last_name AS "lastName",
+                    age,
+                    bio,
+                    gender,
+                    city,
+                    ROUND((CASE WHEN fame_rating > 5 THEN fame_rating::float8 / 20.0 ELSE fame_rating::float8 END)::numeric, 1)::float8 AS "fameRating",
+                    is_online AS "isOnline",
+                    last_seen AS "lastSeen"
+                 FROM users
+                 WHERE id = $1`,
                 [userId]
             )
 
@@ -59,16 +73,84 @@ const profileController = {
 
     getTags: async (req: Request, res: Response) => {
         try {
+            const targetUserId = Number(req.params.userId ?? req.user?.userId)
             const result = await pool.query(
                 `SELECT t.id as "id", t.name as "name" FROM tags t JOIN user_tags ut ON t.id = ut.tag_id WHERE ut.user_id = $1`,
-                [req.user?.userId]
+                [targetUserId]
             )
-            console.log('Fetched tags for user:', req.user?.userId, result.rows);
+            console.log('Fetched tags for user:', targetUserId, result.rows);
             res.status(200).json(result.rows)
         }
         catch (error) {
             console.error('Error fetching tags:', error)
             res.status(500).json({ message: 'Failed to fetch tags' })
+        }
+    },
+
+    getQuestions: async (req: Request, res: Response) => {
+        try {
+            const targetUserId = Number(req.params.userId ?? req.user?.userId)
+            const result = await pool.query(
+                `
+                SELECT id, question, answer, display_order AS "displayOrder"
+                FROM user_profile_questions
+                WHERE user_id = $1
+                ORDER BY display_order ASC, id ASC
+                `,
+                [targetUserId],
+            )
+
+            res.status(200).json(result.rows)
+        } catch (error) {
+            console.error('Error fetching profile questions:', error)
+            res.status(500).json({ message: 'Failed to fetch profile questions' })
+        }
+    },
+
+    updateQuestions: async (req: Request, res: Response) => {
+        let transactionStarted = false
+        try {
+            const userId = req.user?.userId
+            const parsed = z.object({
+                items: z.array(
+                    z.object({
+                        question: z.string().trim().min(1).max(200),
+                        answer: z.string().trim().min(1).max(1000),
+                    }),
+                ).max(5),
+            }).parse(req.body)
+
+            await pool.query('BEGIN')
+            transactionStarted = true
+
+            await pool.query('DELETE FROM user_profile_questions WHERE user_id = $1', [userId])
+
+            for (const [index, item] of parsed.items.entries()) {
+                await pool.query(
+                    `
+                    INSERT INTO user_profile_questions (user_id, question, answer, display_order)
+                    VALUES ($1, $2, $3, $4)
+                    `,
+                    [userId, item.question, item.answer, index + 1],
+                )
+            }
+
+            await pool.query('COMMIT')
+            transactionStarted = false
+            res.status(200).json({ message: 'Profile questions updated successfully' })
+        } catch (error) {
+            if (transactionStarted) {
+                await pool.query('ROLLBACK')
+            }
+            if (error instanceof z.ZodError) {
+                res.status(400).json({
+                    message: 'Invalid questions payload',
+                    details: error.flatten(),
+                })
+                return
+            }
+            console.error('Error updating profile questions:', error)
+            res.status(500).json({ message: 'Failed to update profile questions' })
         }
     },
 
@@ -290,14 +372,24 @@ const profileController = {
     ,
     updateLocation: async (req: Request, res: Response) => {
         try {
-            const { latitude, longitude } = req.body
+            const parsed = z.object({
+                latitude: z.coerce.number().min(-90).max(90),
+                longitude: z.coerce.number().min(-180).max(180),
+                city: z.string().trim().min(1).max(120).optional(),
+            }).parse(req.body)
+
+            const { latitude, longitude, city } = parsed
             await pool.query(
-                'UPDATE users SET latitude = $1, longitude = $2 WHERE id = $3',
-                [latitude, longitude, req.user?.userId]
+                'UPDATE users SET latitude = $1, longitude = $2, city = COALESCE($3, city) WHERE id = $4',
+                [latitude, longitude, city, req.user?.userId]
             )
             res.status(200).json({ message: 'Location updated successfully' })
         }
         catch (error) {
+            if (error instanceof z.ZodError) {
+                res.status(400).json({ message: 'Invalid location payload', details: error.flatten() })
+                return
+            }
             console.error('Error updating location:', error)
             res.status(500).json({ message: 'Failed to update location' })
         }
@@ -462,9 +554,10 @@ const profileController = {
     },
     getImages: async (req: Request, res: Response) => {
         try {
+            const targetUserId = Number(req.params.userId ?? req.user?.userId)
             const result = await pool.query(
                 `SELECT id, url, is_avatar AS "isAvatar" FROM images WHERE user_id = $1`,
-                [req.user?.userId]
+                [targetUserId]
             )
             res.status(200).json(result.rows)
         }

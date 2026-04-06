@@ -4,26 +4,25 @@ import { Separator } from "./ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { ChevronLeft, ChevronRight, Heart, LogOut } from "lucide-react";
 import { Badge } from "./ui/badge";
-import { useState } from "react";
 import { navigationItems } from "@/data/navigationItems";
-import { useRouter } from "next/dist/client/components/navigation";
 import Link from "next/link";
+import { useRealtimeStore } from "@/store/useRealtimeStore";
+import { performLogout } from "@/lib/logout";
 
 
 
 export default function DesktopSideBar({ isSidebarCollapsed, setIsSidebarCollapsed }: { isSidebarCollapsed: boolean, setIsSidebarCollapsed: (value: boolean) => void }) {
 
-    const router = useRouter();
+    const unreadCount = useRealtimeStore((state) => state.unreadCount);
+    const setNotificationDrawerOpen = useRealtimeStore((state) => state.setNotificationDrawerOpen);
 
-    const unreadCount = 5;
-
-    const handleLogout = () => {
-
-        console.log("Logging out...");
+    const handleLogout = async () => {
+        await performLogout();
+        window.location.href = '/';
     };
 
     const handleNotificationClick = () => {
-        console.log("Navigating to notifications...");
+        setNotificationDrawerOpen(true);
     };
 
 
@@ -85,11 +84,6 @@ export default function DesktopSideBar({ isSidebarCollapsed, setIsSidebarCollaps
                                     <Link href={item.href} className="flex items-center">
                                         <div className="relative">
                                             <item.icon className="h-5 w-5 flex-shrink-0" />
-                                            {item.badge && (
-                                                <Badge className="absolute -top-2 -right-2 flex items-center justify-center h-4 w-4 text-xs rounded-full bg-red-500 border border-white">
-                                                    {item.badge}
-                                                </Badge>
-                                            )}
                                         </div>
                                         {!isSidebarCollapsed && (
                                             <span className="ml-3 truncate">{item.label}</span>

@@ -22,7 +22,13 @@ export const settingApi  = {
     updateTags : async (tagIds: number[]) => {
         return apiService.patchCall(`${profileApiPrefix}/tags`, { tagIds });
     },
+    updateQuestions: async (items: Array<{ question: string; answer: string }>) => {
+        return apiService.patchCall(`${profileApiPrefix}/questions`, { items });
+    },
     getTagsAggregated : async () => {
         return apiService.getCall(`${profileApiPrefix}/tags`);
+    },
+    getQuestions: async (userId: string | number) => {
+        return apiService.getCall(`${profileApiPrefix}/${userId}/questions`);
     }
 }

@@ -40,5 +40,18 @@ export const apiService = {
             }
             throw new Error("Unexpected error occurred");
         }
+    },
+    deleteCall: async (endpoint: string) => {
+        try {
+            const response = await api.delete(endpoint);
+            console.log("API DELETE call response:", response);
+            return response.data;
+        } catch (error) {
+            console.error("API DELETE call error:", error);
+            if (axios.isAxiosError(error)) {
+                throw error.response?.data ?? new Error("Failed to delete data");
+            }
+            throw new Error("Unexpected error occurred");
+        }
     }
 }

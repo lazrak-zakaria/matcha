@@ -9,6 +9,7 @@ const authRouter : Router = Router();
 authRouter.post('/register', validateBody(registerSchema), authController.register)
 authRouter.post('/login', validateBody(loginSchema), authController.login)
 authRouter.post('/refresh-token', hasRefreshToken, authController.refreshToken)
+authRouter.post('/logout', authController.logout)
 
 export default authRouter
 export {authRouter}

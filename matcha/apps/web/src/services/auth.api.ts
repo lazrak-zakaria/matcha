@@ -8,6 +8,10 @@ export const authService  = {
     ,
     login : async (payload: any) => {
         return apiService.postCall("/auth/login", payload);
+    },
+
+    logout: async () => {
+        return apiService.postCall("/auth/logout", {});
     }
 
 }

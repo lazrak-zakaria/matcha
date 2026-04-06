@@ -10,5 +10,9 @@ export const browsingService  = {
     }
     ,
 
+    searchUsersByName: async (name: string, sortBy: 'fame' | 'age' | 'location' = 'fame') => {
+        return apiService.getCall(`/users/search?name=${encodeURIComponent(name)}&sortBy=${sortBy}`);
+    }
+
 
 }

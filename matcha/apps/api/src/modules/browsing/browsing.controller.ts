@@ -2,6 +2,92 @@ import type { Request, Response } from 'express'
 import { pool } from '../../config/db/index'
 
 const browsingController = {
+    searchUsersByName: async (req: Request, res: Response) => {
+        try {
+            const currentUserId = req.user?.userId
+            const name = String(req.query.name ?? '').trim()
+            const limit = 30
+            const sortByRaw = String(req.query.sortBy ?? 'fame').toLowerCase()
+            const normalizedFameSql = 'CASE WHEN u.fame_rating > 5 THEN u.fame_rating::float8 / 20.0 ELSE u.fame_rating::float8 END'
+
+            const orderByClauseBySort: Record<string, string> = {
+                fame: `${normalizedFameSql} DESC, u.is_online DESC, u.last_seen DESC NULLS LAST, u.username ASC`,
+                age: 'u.age ASC NULLS LAST, u.is_online DESC, u.last_seen DESC NULLS LAST, u.username ASC',
+                location: '"distanceKm" ASC NULLS LAST, u.is_online DESC, u.last_seen DESC NULLS LAST, u.username ASC',
+            }
+
+            const orderByClause = orderByClauseBySort[sortByRaw] ?? orderByClauseBySort.fame
+
+            if (!name) {
+                res.status(200).json({ data: [] })
+                return
+            }
+
+            const result = await pool.query(
+                `
+                SELECT
+                    u.id,
+                    u.username,
+                    u.first_name AS "firstName",
+                    u.last_name AS "lastName",
+                    u.age,
+                    u.city,
+                    ROUND((${normalizedFameSql})::numeric, 1)::float8 AS "fameRating",
+                    u.is_online AS "isOnline",
+                    u.last_seen AS "lastSeen",
+                    (
+                        SELECT i.url
+                        FROM images i
+                        WHERE i.user_id = u.id
+                        ORDER BY i.is_avatar DESC, i.id ASC
+                        LIMIT 1
+                    ) AS avatar,
+                    EXISTS (
+                        SELECT 1 FROM likes
+                        WHERE liker_id = u.id AND liked_id = $1
+                    ) AS "likedYou",
+                    EXISTS (
+                        SELECT 1 FROM matches m
+                        WHERE (m.user1_id = u.id AND m.user2_id = $1)
+                           OR (m.user1_id = $1 AND m.user2_id = u.id)
+                    ) AS "isConnected",
+                    CASE
+                        WHEN u.latitude IS NOT NULL AND u.longitude IS NOT NULL
+                             AND cu.latitude IS NOT NULL AND cu.longitude IS NOT NULL
+                        THEN 6371 * 2 * ASIN(SQRT(
+                            POWER(SIN(RADIANS(cu.latitude  - u.latitude)  / 2), 2) +
+                            COS(RADIANS(u.latitude)) * COS(RADIANS(cu.latitude)) *
+                            POWER(SIN(RADIANS(cu.longitude - u.longitude) / 2), 2)
+                        ))
+                        ELSE NULL
+                    END AS "distanceKm"
+                FROM users u
+                JOIN users cu ON cu.id = $1
+                WHERE u.id <> $1
+                  AND (
+                      u.username ILIKE $2
+                      OR u.first_name ILIKE $2
+                      OR u.last_name ILIKE $2
+                  )
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM blocks b
+                      WHERE (b.blocker_id = $1 AND b.blocked_id = u.id)
+                         OR (b.blocker_id = u.id AND b.blocked_id = $1)
+                  )
+                                ORDER BY ${orderByClause}
+                LIMIT $3
+                `,
+                [currentUserId, `%${name}%`, limit],
+            )
+
+            res.status(200).json({ data: result.rows })
+        } catch (error) {
+            console.error('Error searching users by name:', error)
+            res.status(500).json({ message: 'Failed to search users' })
+        }
+    },
+
     getUsersBypreferences: async (req: Request, res: Response) => {
         try {
             const currentUserId = req.user?.userId
@@ -33,17 +119,11 @@ const browsingController = {
                     AND (p.max_age IS NULL OR u.age <= p.max_age)
                     AND (
                         p.min_fame_rating IS NULL
-                        OR u.fame_rating >= CASE
-                            WHEN p.min_fame_rating <= 5 THEN p.min_fame_rating * 20
-                            ELSE p.min_fame_rating
-                        END
+                        OR (CASE WHEN u.fame_rating > 5 THEN u.fame_rating::float8 / 20.0 ELSE u.fame_rating::float8 END) >= p.min_fame_rating
                     )
                     AND (
                         p.max_fame_rating IS NULL
-                        OR u.fame_rating <= CASE
-                            WHEN p.max_fame_rating <= 5 THEN p.max_fame_rating * 20
-                            ELSE p.max_fame_rating
-                        END
+                        OR (CASE WHEN u.fame_rating > 5 THEN u.fame_rating::float8 / 20.0 ELSE u.fame_rating::float8 END) <= p.max_fame_rating
                     )
                     AND (p.preferred_gender IS NULL OR u.gender = p.preferred_gender)
                     AND (
@@ -87,7 +167,8 @@ const browsingController = {
                     u.bio,
                     u.age,
                     u.gender,
-                    u.fame_rating AS "fameRating",
+                    u.city,
+                    ROUND((CASE WHEN u.fame_rating > 5 THEN u.fame_rating::float8 / 20.0 ELSE u.fame_rating::float8 END)::numeric, 1)::float8 AS "fameRating",
                     u.is_online AS "isOnline",
                     u.last_seen AS "lastSeen",
                     COALESCE(
@@ -145,17 +226,11 @@ const browsingController = {
                     AND (p.max_age IS NULL OR u.age <= p.max_age)
                     AND (
                         p.min_fame_rating IS NULL
-                        OR u.fame_rating >= CASE
-                            WHEN p.min_fame_rating <= 5 THEN p.min_fame_rating * 20
-                            ELSE p.min_fame_rating
-                        END
+                        OR (CASE WHEN u.fame_rating > 5 THEN u.fame_rating::float8 / 20.0 ELSE u.fame_rating::float8 END) >= p.min_fame_rating
                     )
                     AND (
                         p.max_fame_rating IS NULL
-                        OR u.fame_rating <= CASE
-                            WHEN p.max_fame_rating <= 5 THEN p.max_fame_rating * 20
-                            ELSE p.max_fame_rating
-                        END
+                        OR (CASE WHEN u.fame_rating > 5 THEN u.fame_rating::float8 / 20.0 ELSE u.fame_rating::float8 END) <= p.max_fame_rating
                     )
                     AND (p.preferred_gender IS NULL OR u.gender = p.preferred_gender)
                     AND (
@@ -183,7 +258,7 @@ const browsingController = {
                               AND pt.user_id = p.user_id
                         )
                     )
-                ORDER BY "distanceKm" NULLS LAST, u.fame_rating DESC
+                ORDER BY "distanceKm" NULLS LAST, (CASE WHEN u.fame_rating > 5 THEN u.fame_rating::float8 / 20.0 ELSE u.fame_rating::float8 END) DESC
                 LIMIT $2 OFFSET $3
             `, [currentUserId, pageSize, safeOffset])
             console.log('Fetched users by preferences:', result.rows)

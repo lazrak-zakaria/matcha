@@ -80,7 +80,7 @@ export const userPasswordUpdate = z.object({
 
 export default function Settings() {
 
-    const { user } = useAuthStore();
+    const { user, age, bio, gender, setProfileDetails } = useAuthStore();
     const [accountErrors, setAccountErrors] = useState<Record<string, string>>({});
     const [accountForm, setAccountForm] = useState({
         firstName: user?.firstName || '',
@@ -89,9 +89,9 @@ export default function Settings() {
     })
 
     const [profileForm, setProfileForm] = useState({
-        age: user?.age || 18,
-        bio: user?.bio || '',
-        gender: user?.gender || 'other',
+        age: age ?? user?.age ?? 18,
+        bio: bio ?? user?.bio ?? '',
+        gender: gender ?? user?.gender ?? 'other',
     })
     const [profileErrors, setProfileErrors] = useState<Record<string, string>>({});
 
@@ -127,11 +127,40 @@ export default function Settings() {
 
     const [tags, setTags] = useState<Array<string>>(Array.isArray(tagsData) ? tagsData : []);
 
+    const [questions, setQuestions] = useState<Array<{ question: string; answer: string }>>([]);
+
+    const { data: questionsData, isLoading: isQuestionsLoading } = useQuery({
+        queryKey: ['profile-questions', user?.userId],
+        queryFn: () => settingApi.getQuestions(user?.userId || ''),
+        enabled: !!user?.userId,
+    });
+
+
+    useEffect(() => {
+        if (Array.isArray(questionsData)) {
+            setQuestions(
+                questionsData.map((item: any) => ({
+                    question: item.question ?? '',
+                    answer: item.answer ?? '',
+                })),
+            );
+        }
+    }, [questionsData]);
+
     useEffect(() => {
         if (tagsData) {
             setTags(tagsData);
         }
     }, [tagsData]);
+
+    useEffect(() => {
+        setProfileForm((prev) => ({
+            ...prev,
+            age: age ?? user?.age ?? prev.age,
+            bio: bio ?? user?.bio ?? prev.bio,
+            gender: gender ?? user?.gender ?? prev.gender,
+        }))
+    }, [age, bio, gender, user?.age, user?.bio, user?.gender])
 
 
     const handleAccountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -192,9 +221,11 @@ export default function Settings() {
         mutationFn: settingApi.updateProfile,
         onSuccess: () => {
             toast.success("Profile updated!");
-            user && useAuthStore.setState((state) => ({
-                user: { ...state.user, ...profileForm }
-            }))
+            setProfileDetails({
+                age: Number(profileForm.age),
+                bio: String(profileForm.bio),
+                gender: profileForm.gender as 'male' | 'female' | 'other',
+            })
         },
         onError: (result: any) => {
             toast.error("Failed to update profile.");
@@ -310,16 +341,50 @@ export default function Settings() {
     }
     )
 
+    const { mutate: updateQuestions, isPending: isQuestionsUpdating } = useMutation({
+        mutationFn: settingApi.updateQuestions,
+        onSuccess: () => {
+            toast.success('Questions updated!');
+        },
+        onError: () => {
+            toast.error('Failed to update questions.');
+        },
+    });
+
+    const handleQuestionFieldChange = (index: number, key: 'question' | 'answer', value: string) => {
+        setQuestions((prev) => prev.map((item, idx) => idx === index ? { ...item, [key]: value } : item));
+    };
+
+    const addQuestion = () => {
+        if (questions.length >= 5) return;
+        setQuestions((prev) => [...prev, { question: '', answer: '' }]);
+    };
+
+    const removeQuestion = (index: number) => {
+        setQuestions((prev) => prev.filter((_, idx) => idx !== index));
+    };
+
+    const handleQuestionsUpdate = () => {
+        const cleaned = questions
+            .map((item) => ({ question: item.question.trim(), answer: item.answer.trim() }))
+            .filter((item) => item.question.length > 0 && item.answer.length > 0)
+            .slice(0, 5);
+
+        updateQuestions(cleaned);
+    };
+
 
     // const tags: string[] = [];
 
-
     return (
-        <div className="flex items-center justify-center">
+        <div className="min-h-screen bg-white mt-16 mb-16 lg:mt-0 lg:mb-0">
+            <div className="flex items-center justify-between border-b px-4 py-4">
+                <h1 className="text-xl font-semibold">Settings</h1>
+            </div>
 
-            <div className="flex w-full max-w-sm flex-col gap-6">
+            <div className="mx-auto flex w-full max-w-md flex-col gap-6 p-4">
                 <Tabs defaultValue="account">
-                    <TabsList>
+                    <TabsList className="grid w-full grid-cols-4">
                         <TabsTrigger value="account">Account</TabsTrigger>
                         <TabsTrigger value="profile">Profile</TabsTrigger>
                         <TabsTrigger value="password">Password</TabsTrigger>
@@ -578,11 +643,62 @@ export default function Settings() {
                                     </div>
 
                                 </div>
+
+                                <div className="grid gap-3">
+                                    <div className="flex items-center justify-between">
+                                        <Label>About Me Q&A (max 5)</Label>
+                                        <Button type="button" variant="outline" onClick={addQuestion} disabled={questions.length >= 5}>
+                                            Add question
+                                        </Button>
+                                    </div>
+
+                                    {isQuestionsLoading ? (
+                                        <p className="text-sm text-gray-500">Loading questions...</p>
+                                    ) : questions.length === 0 ? (
+                                        <p className="text-sm text-gray-500">No questions yet. Add up to 5.</p>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {questions.map((item, index) => (
+                                                <Card key={`question-${index}`} className="p-3">
+                                                    <div className="grid gap-2">
+                                                        <Input
+                                                            value={item.question}
+                                                            onChange={(event) => handleQuestionFieldChange(index, 'question', event.target.value)}
+                                                            placeholder={`Question ${index + 1}`}
+                                                            maxLength={200}
+                                                        />
+                                                        <Textarea
+                                                            value={item.answer}
+                                                            onChange={(event) => handleQuestionFieldChange(index, 'answer', event.target.value)}
+                                                            placeholder="Your answer"
+                                                            maxLength={1000}
+                                                        />
+                                                        <div className="flex justify-end">
+                                                            <Button
+                                                                type="button"
+                                                                variant="destructive"
+                                                                size="sm"
+                                                                onClick={() => removeQuestion(index)}
+                                                            >
+                                                                Remove
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                </Card>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </CardContent>
                             <CardFooter>
-                                <Button onClick={handleTagsUpdate} disabled={isTagsUpdating}>
-                                    {isTagsUpdating ? 'Updating...' : 'Update'}
-                                </Button>
+                                <div className="flex gap-2">
+                                    <Button onClick={handleTagsUpdate} disabled={isTagsUpdating}>
+                                        {isTagsUpdating ? 'Updating tags...' : 'Update tags'}
+                                    </Button>
+                                    <Button onClick={handleQuestionsUpdate} disabled={isQuestionsUpdating}>
+                                        {isQuestionsUpdating ? 'Updating questions...' : 'Update questions'}
+                                    </Button>
+                                </div>
                             </CardFooter>
                         </Card>
                     </TabsContent>

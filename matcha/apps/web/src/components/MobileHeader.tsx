@@ -1,14 +1,26 @@
-import { Bell, Heart } from "lucide-react";
+"use client";
+import { Bell, Heart, LogOut } from "lucide-react";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
+import { useRealtimeStore } from "@/store/useRealtimeStore";
+import Link from "next/link";
+import { useAuthStore } from "@/store/useAuthStore";
+import { performLogout } from "@/lib/logout";
 
 
 
 export default function MobileHeader() {
-    const unreadCount = 3;
+    const {user} = useAuthStore();
+    const unreadCount = useRealtimeStore((state) => state.unreadCount);
+    const setNotificationDrawerOpen = useRealtimeStore((state) => state.setNotificationDrawerOpen);
     const handleNotificationClick = () => {
-        console.log("Navigating to notifications...");
+        setNotificationDrawerOpen(true);
+    };
+
+    const handleLogout = async () => {
+        await performLogout();
+        window.location.href = '/';
     };
 
     return (
@@ -26,6 +38,15 @@ export default function MobileHeader() {
                     <Button
                         variant="ghost"
                         size="icon"
+                        onClick={handleLogout}
+                        aria-label="Log out"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                        <LogOut className="h-5 w-5" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={handleNotificationClick}
                     >
                         <div className="relative">
@@ -37,10 +58,12 @@ export default function MobileHeader() {
                             )}
                         </div>
                     </Button>
-                    <Avatar className="h-8 w-8">
-                        <AvatarImage src="/api/placeholder/32/32" />
-                        <AvatarFallback>JD</AvatarFallback>
-                    </Avatar>
+                    <Link href="/profile" aria-label="Go to profile">
+                        <Avatar className="h-8 w-8 cursor-pointer">
+                            <AvatarImage src={user?.avatar} />
+                            <AvatarFallback>{user?.firstName?.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                    </Link>
                 </div>
             </div>
         </div>

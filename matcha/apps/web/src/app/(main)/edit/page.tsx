@@ -63,7 +63,8 @@ export default function ImageSettings() {
       id: Date.now() + i + '',
       file,
       url: URL.createObjectURL(file),
-      isAvatar: false,
+      // If there is no avatar yet, promote the first newly uploaded image.
+      isAvatar: images.every((img) => !img.isAvatar) && i === 0,
       isExisting: false
     }));
     setImages([...images, ...newImages]);
@@ -98,11 +99,16 @@ export default function ImageSettings() {
     onSuccess: (result: any) => {
       toast("Images updated successfully.");
       setRemovedImageIds([]);
-      user && useAuthStore.setState((state) => ({
-
-
-        user: { ...state.user, avatar: result.avatar.startsWith("/") ? `${process.env.NEXT_PUBLIC_API_URL}${result.avatar}` : result.avatarr  }
-      }))
+      if (user && result?.avatar) {
+        useAuthStore.setState((state) => ({
+          user: {
+            ...state.user,
+            avatar: result.avatar.startsWith("/")
+              ? `${process.env.NEXT_PUBLIC_API_URL}${result.avatar}`
+              : result.avatar,
+          },
+        }))
+      }
     },
     onError: (err: any) => {
       console.error("Error updating images:", err);
@@ -147,9 +153,7 @@ export default function ImageSettings() {
       {
         isImagesLoading ? (
           <div>Loading images...</div>
-        ) : (
-          images.length === 0) ? (
-          <div>No images uploaded yet.</div>
+        
         ) : (
 
           <div className="grid grid-cols-2 gap-4">

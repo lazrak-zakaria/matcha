@@ -3,8 +3,10 @@ export interface Profile {
   firstName: string;
   lastName: string;
   age: number;
-  location: string;
-  distance: string;
+  city?: string | null;
+  location?: string;
+  distance?: string;
+  distanceKm?: number | null;
   fameRating: number;
   bio: string;
   photos: any;
